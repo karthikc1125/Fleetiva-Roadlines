@@ -1,84 +1,63 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const errorHandler = require('./middleware/errorHandler');
-const { AppError } = require('./utils/appError');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const admin = require("firebase-admin");
 
-// OPTIONAL services (won’t crash app)
-require('./config/clients');
-
-/* ===================== FIREBASE ADMIN ===================== */
-const admin = require('firebase-admin');
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase Admin initialized');
-  } catch (err) {
-    console.error('❌ Firebase Admin initialization failed:', err.message);
-  }
-}
+const errorHandler = require("./middleware/errorHandler");
+require("./config/clients"); // redis/twilio safe
 
 const app = express();
 
-/* ===================== MIDDLEWARE ===================== */
+/* ================= MIDDLEWARE ================= */
 app.use(express.json());
-app.use(cors({ 
-  origin: process.env.FRONTEND_URL || "https://fleetiva-roadlines.vercel.app", 
-  credentials: true 
-}));
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
-/* ===================== HEALTH CHECK ===================== */
-// ⚠️ MUST respond fast for Render
-app.get('/', (req, res) => {
-  res.status(200).send('Fleetiva backend is running 🚀');
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-/* ===================== ROUTES ===================== */
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api', require('./routes/logistics'));
-
-/* ===================== ERROR HANDLING ===================== */
-app.use((req, res, next) => {
-  next(new AppError(`Route not found - ${req.originalUrl}`, 404));
-});
-
-app.use(errorHandler);
-
-/* ===================== DATABASE ===================== */
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.set('strictQuery', false);
-if (MONGO_URI) {
-  mongoose
-    .connect(MONGO_URI)
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err =>
-      console.error('⚠️ MongoDB connection failed (app still running):', err.message)
-    );
-} else {
-  console.warn('⚠️ MONGO_URI not set. Running without database.');
+/* ================= FIREBASE ADMIN ================= */
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+    ),
+  });
+  console.log("✅ Firebase Admin initialized");
 }
 
-/* ===================== SERVER ===================== */
-// 🚨 THIS IS CRITICAL FOR RENDER
-const PORT = process.env.PORT || 10000;
+/* ================= MONGODB ================= */
+if (!process.env.MONGO_URI) {
+  console.error("❌ MONGO_URI missing");
+  process.exit(1);
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server listening on port ${PORT}`);
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB error:", err.message);
+    process.exit(1);
+  });
+
+/* ================= HEALTH ================= */
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
-/* ===================== SAFETY ===================== */
-// DO NOT exit process on Render
-process.on('unhandledRejection', err => {
-  console.error('Unhandled rejection (ignored):', err.message);
+/* ================= ROUTES ================= */
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api", require("./routes/logistics"));
+
+/* ================= ERRORS ================= */
+app.use(errorHandler);
+
+/* ================= START ================= */
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
