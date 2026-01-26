@@ -11,15 +11,17 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "driver", "admin"],
       default: "customer",
     },
-    provider: {
+    authProvider: {
       type: String,
       enum: ["local", "google"],
       default: "local",
     },
+    googleId: { type: String },
     companyName: String,
     isVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
+  
 );
 
 module.exports = mongoose.model("User", userSchema);

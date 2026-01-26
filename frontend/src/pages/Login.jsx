@@ -1,47 +1,59 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { useNavigate, Link } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
+import Toast from "../components/Toast";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 
 export default function Login() {
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
+  const { loading, setLoading } = useContext(AppContext);
 
-  const login = async (e) => {
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    phone: "",
+    password: "",
+  });
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", { phone, password });
-      localStorage.setItem("accessToken", res.data.accessToken);
-      localStorage.setItem("role", res.data.role);
+    if (loading) return;
 
-      if (res.data.role === "admin") navigate("/admin");
-      else if (res.data.role === "superadmin") navigate("/superadmin");
-      else if (res.data.role === "driver") navigate("/driver");
-      else navigate("/");
-    } catch {
-      alert("Invalid credentials");
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await api.post("/auth/login", formData);
+
+      // save token
+      localStorage.setItem("accessToken", res.data.accessToken);
+
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
+
+    setError("");
     setLoading(true);
+
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
+
       const res = await api.post("/auth/google", { idToken });
+
       localStorage.setItem("accessToken", res.data.accessToken);
-      localStorage.setItem("role", res.data.role);
-      if (res.data.role === "admin") navigate("/admin");
-      else navigate("/");
+
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      alert("Google Login failed");
+      setError("Google login failed");
     } finally {
       setLoading(false);
     }
@@ -49,153 +61,93 @@ export default function Login() {
 
   return (
     <div style={styles.container}>
-      <div 
-        style={{
-          ...styles.card, 
-          ...(isHovered ? styles.cardHover : {})
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div style={styles.header}>
-          <h2 style={styles.title}>Welcome Back</h2>
-          <p style={styles.subtitle}>Log in to manage your logistics</p>
-        </div>
-        <form onSubmit={login} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Phone Number</label>
-            <input
-              placeholder="Enter your phone"
-              type="tel"
-              required
-              style={styles.input}
-              onChange={e => setPhone(e.target.value)}
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              placeholder="Enter your password"
-              type="password"
-              required
-              style={styles.input}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={loading} 
-            style={loading ? {...styles.button, ...styles.buttonDisabled} : styles.button}
-          >
-            {loading ? "Authenticating..." : "Login"}
+      <div style={styles.card}>
+        <h2 style={styles.title}>Login</h2>
+
+        {error && <Toast message={error} />}
+
+        <form onSubmit={handleLogin} style={styles.form}>
+          <input
+            placeholder="Phone Number"
+            required
+            style={styles.input}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            style={styles.input}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+          />
+
+          <button type="submit" disabled={loading} style={styles.button}>
+            {loading ? "Signing in..." : "Login"}
           </button>
+          <button
+  type="button"
+  onClick={handleGoogleLogin}
+  disabled={loading}
+  style={{
+    marginTop: 10,
+    padding: 12,
+    background: "#fff",
+    border: "1px solid #d1d5db",
+    cursor: "pointer",
+  }}
+>
+  Continue with Google
+</button>
+
         </form>
-        <div style={{ margin: '20px 0', textAlign: 'center', color: '#6b7280' }}>OR</div>
-        <button 
-          onClick={handleGoogleLogin} 
-          disabled={loading}
-          style={{ ...styles.button, backgroundColor: '#fff', color: '#374151', border: '1px solid #d1d5db' }}
-        >
-          Sign in with Google
-        </button>
-        <p style={styles.footerText}>
-          <Link to="/forgot-password" style={styles.link}>Forgot Password?</Link>
-        </p>
-        <p style={styles.footerText}>
-          Don't have an account? <Link to="/register" style={styles.link}>Register</Link>
+
+        <p style={{ marginTop: 16 }}>
+          Don’t have an account? <Link to="/register">Register</Link>
         </p>
       </div>
     </div>
   );
 }
 
+/* STYLES */
 const styles = {
   container: {
     minHeight: "100vh",
-    width: "100vw",
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
-    background: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)",
-    padding: "20px",
-    boxSizing: "border-box"
+    alignItems: "center",
+    background: "#f3f4f6",
   },
   card: {
-    width: "100%",
-    maxWidth: "400px",
-    backgroundColor: "#ffffff",
-    padding: "40px",
-    borderRadius: "12px",
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-    transition: "transform 0.3s ease, box-shadow 0.3s ease",
-  },
-  cardHover: {
-    transform: "translateY(-5px)",
-    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-  },
-  header: {
-    textAlign: "center",
-    marginBottom: "30px"
+    width: 420,
+    padding: 30,
+    background: "#fff",
+    borderRadius: 10,
+    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
   },
   title: {
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#111827",
-    margin: "0 0 8px 0"
-  },
-  subtitle: {
-    fontSize: "14px",
-    color: "#6b7280",
-    margin: 0
+    marginBottom: 20,
+    textAlign: "center",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "20px"
-  },
-  inputGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px"
-  },
-  label: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#374151"
+    gap: 12,
   },
   input: {
-    padding: "12px 16px",
-    borderRadius: "8px",
-    border: "1px solid #d1d5db",
-    fontSize: "16px",
-    outline: "none",
-    transition: "border-color 0.2s",
+    padding: 10,
+    fontSize: 14,
   },
   button: {
-    padding: "12px",
-    borderRadius: "8px",
+    padding: 12,
+    background: "#2563eb",
+    color: "#fff",
     border: "none",
-    backgroundColor: "#2563eb",
-    color: "#ffffff",
-    fontSize: "16px",
-    fontWeight: "600",
     cursor: "pointer",
-    transition: "background-color 0.2s",
-    marginTop: "10px"
   },
-  buttonDisabled: {
-    backgroundColor: "#93c5fd",
-    cursor: "not-allowed"
-  },
-  footerText: {
-    marginTop: "24px",
-    textAlign: "center",
-    fontSize: "14px",
-    color: "#4b5563"
-  },
-  link: {
-    color: "#2563eb",
-    textDecoration: "none",
-    fontWeight: "500"
-  }
 };

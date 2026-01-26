@@ -58,33 +58,39 @@ router.post("/login", async (req, res) => {
 
 /* ================= GOOGLE LOGIN ================= */
 router.post("/google", async (req, res) => {
-  try {
-    const { idToken } = req.body;
+  const { idToken } = req.body;
 
+  if (!idToken) {
+    return res.status(400).json({ message: "Missing Google token" });
+  }
+
+  try {
     const decoded = await admin.auth().verifyIdToken(idToken);
 
-    let user = await User.findOne({ email: decoded.email });
+    const { email, name, uid } = decoded;
+
+    let user = await User.findOne({ googleId: uid });
 
     if (!user) {
       user = await User.create({
-        name: decoded.name,
-        email: decoded.email,
+        name,
+        email,
+        googleId: uid,
         role: "customer",
-        isVerified: true,
-        provider: "google",
+        authProvider: "google",
       });
     }
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ accessToken: token });
+    res.json({ accessToken });
   } catch (err) {
     console.error(err);
-    res.status(401).json({ message: "Google auth failed" });
+    res.status(401).json({ message: "Invalid Google token" });
   }
 });
 
