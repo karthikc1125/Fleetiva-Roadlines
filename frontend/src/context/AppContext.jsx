@@ -2,7 +2,7 @@ import { createContext, useState } from "react";
 
 export const AppContext = createContext();
 
-export function AppProvider({ children }) {
+export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   return (
@@ -11,7 +11,7 @@ export function AppProvider({ children }) {
       {children}
     </AppContext.Provider>
   );
-}
+};
 
 function FullScreenLoader() {
   return (
@@ -32,9 +32,9 @@ const styles = {
     zIndex: 9999,
   },
   spinner: {
-    width: 48,
-    height: 48,
-    border: "5px solid #e5e7eb",
+    width: 50,
+    height: 50,
+    border: "5px solid #ddd",
     borderTop: "5px solid #2563eb",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",

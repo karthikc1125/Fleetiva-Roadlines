@@ -1,42 +1,17 @@
-import { createContext, useState } from "react";
+import React from 'react'
 
-export const AppContext = createContext();
-
-export default function App({ children }) {
-  const [loading, setLoading] = useState(false);
-
+const App = () => {
   return (
-    <AppContext.Provider value={{ loading, setLoading }}>
-      {loading && <FullScreenLoader />}
-      {children}
-    </AppContext.Provider>
-  );
-}
-
-function FullScreenLoader() {
-  return (
-    <div style={styles.overlay}>
-      <div style={styles.spinner}></div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded shadow-md text-center">
+        <h1 className="text-2xl font-bold text-blue-600 mb-4">🚀 Setup Complete!</h1>
+        <p className="text-gray-700">
+          If you see this, the Frontend is connected to the Context.<br/>
+          You are ready to submit your PR.
+        </p>
+      </div>
     </div>
-  );
+  )
 }
 
-const styles = {
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(255,255,255,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-  },
-  spinner: {
-    width: 50,
-    height: 50,
-    border: "5px solid #ddd",
-    borderTop: "5px solid #2563eb",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-};
+export default App;

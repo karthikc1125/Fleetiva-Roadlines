@@ -97,7 +97,7 @@ It provides a centralized ecosystem for Logistics Companies (Tenants) to manage 
 
 ## 📝 API Documentation (Brief)
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Description   |
 | :--- | :--- | :--- |
 | POST | `/api/auth/register` | Register new user/tenant & send OTP |
 | POST | `/api/auth/verify-otp` | Verify OTP and create account |

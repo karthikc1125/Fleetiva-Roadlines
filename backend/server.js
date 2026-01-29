@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const admin = require("firebase-admin"); 
+const fs = require("fs");
 
 const errorHandler = require("./middleware/errorHandler");
 require("./config/clients"); // redis/twilio safe
@@ -19,6 +21,30 @@ app.use(
   })
 );
 
+
+/* ================= FIREBASE ADMIN ================= */
+// Use the variable from .env if it exists, otherwise default to the cloud path
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT || "/etc/secrets/firebase-service-account.json";
+
+if (!admin.apps.length) {
+  if (!fs.existsSync(serviceAccountPath)) {
+    console.error("❌ Firebase service account file not found");
+    process.exit(1);
+  }
+
+  const serviceAccount = JSON.parse(
+    fs.readFileSync(serviceAccountPath, "utf8")
+  );
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+
+  console.log("✅ Firebase Admin initialized");
+}
+
+
+ 
 /* ================= MONGODB ================= */
 if (!process.env.MONGO_URI) {
   console.error("❌ MONGO_URI missing");
