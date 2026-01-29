@@ -2,7 +2,6 @@ import { createContext, useState } from "react";
 
 export const AppContext = createContext();
 
-// CHANGE 1: We renamed 'App' to 'AppProvider' and removed 'default'
 export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
