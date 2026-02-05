@@ -23,5 +23,8 @@
     "twilio": "^5.4.0"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "mongodb-memory-server": "^11.0.1"
+  }
 }

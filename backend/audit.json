@@ -1,0 +1,96 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@google-cloud/storage": {
+      "name": "@google-cloud/storage",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "fast-xml-parser"
+      ],
+      "effects": [
+        "firebase-admin"
+      ],
+      "range": ">=7.12.1",
+      "nodes": [
+        "node_modules/@google-cloud/storage"
+      ],
+      "fixAvailable": {
+        "name": "firebase-admin",
+        "version": "12.7.0",
+        "isSemVerMajor": true
+      }
+    },
+    "fast-xml-parser": {
+      "name": "fast-xml-parser",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112708,
+          "name": "fast-xml-parser",
+          "dependency": "fast-xml-parser",
+          "title": "fast-xml-parser has RangeError DoS Numeric Entities Bug",
+          "url": "https://github.com/advisories/GHSA-37qj-frw5-hhjh",
+          "severity": "high",
+          "cwe": [
+            "CWE-248"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=4.3.6 <=5.3.3"
+        }
+      ],
+      "effects": [
+        "@google-cloud/storage"
+      ],
+      "range": "4.3.6 - 5.3.3",
+      "nodes": [
+        "node_modules/fast-xml-parser"
+      ],
+      "fixAvailable": {
+        "name": "firebase-admin",
+        "version": "12.7.0",
+        "isSemVerMajor": true
+      }
+    },
+    "firebase-admin": {
+      "name": "firebase-admin",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@google-cloud/storage"
+      ],
+      "effects": [],
+      "range": ">=13.0.0",
+      "nodes": [
+        "node_modules/firebase-admin"
+      ],
+      "fixAvailable": {
+        "name": "firebase-admin",
+        "version": "12.7.0",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    "dependencies": {
+      "prod": 202,
+      "dev": 0,
+      "optional": 83,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 284
+    }
+  }
+}

@@ -1,6 +1,9 @@
 require("dotenv").config();
+// Force the server to use port 11000 for local testing to avoid conflicts
+process.env.PORT = '11000';
 const express = require("express");
 const mongoose = require("mongoose");
+const { connectMongo } = require("./config/db2");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const admin = require("firebase-admin"); 
@@ -26,21 +29,26 @@ app.use(
 // Use the variable from .env if it exists, otherwise default to the cloud path
 const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT || "/etc/secrets/firebase-service-account.json";
 
-if (!admin.apps.length) {
-  if (!fs.existsSync(serviceAccountPath)) {
-    console.error("❌ Firebase service account file not found");
-    process.exit(1);
+// Allow skipping Firebase initialization for local development/tests
+if (process.env.SKIP_FIREBASE === "true") {
+  console.log("⚠️ SKIP_FIREBASE=true — skipping Firebase Admin initialization");
+} else {
+  if (!admin.apps.length) {
+    if (!fs.existsSync(serviceAccountPath)) {
+      console.error("❌ Firebase service account file not found");
+      process.exit(1);
+    }
+
+    const serviceAccount = JSON.parse(
+      fs.readFileSync(serviceAccountPath, "utf8")
+    );
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    console.log("✅ Firebase Admin initialized");
   }
-
-  const serviceAccount = JSON.parse(
-    fs.readFileSync(serviceAccountPath, "utf8")
-  );
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-
-  console.log("✅ Firebase Admin initialized");
 }
 
 
@@ -51,7 +59,12 @@ if (!process.env.MONGO_URI) {
 } else {
   mongoose
     .connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ MongoDB connected"))
+    .then(() => {
+      console.log("✅ MongoDB connected (mongoose)");
+      connectMongo().catch((err) => {
+        console.warn("⚠️ Additional MongoClient ping failed:", err.message || err);
+      });
+    })
     .catch((err) => {
       console.error("⚠️ MongoDB connection failed (app still running):", err.message);
     });
@@ -70,7 +83,7 @@ app.use("/api", require("./routes/logistics"));
 app.use(errorHandler);
 
 /* ================= START ================= */
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 11000;
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });

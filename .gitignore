@@ -23,3 +23,5 @@ backend/Navbar.jsx
 frontend/Navbar.jsx
 frontend/frontend/
 firebase-service-account.json
+.vercel
+.env*.local
