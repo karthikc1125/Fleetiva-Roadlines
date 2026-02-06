@@ -1,28 +1,27 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AppContext } from './context/AppContext';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import DriverDashboard from "./pages/DriverDashboard";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+const ProtectedRoute = ({ children }) => {
+  const { user } = useContext(AppContext);
+  return user ? children : <Navigate to="/login" />;
+};
 
 const App = () => {
+  const { user } = useContext(AppContext);
+
   return (
     <Router>
+      {user && <Navbar />}
       <Routes>
-        {/* Default route */}
-        <Route path="/" element={<Navigate to="/login" />} />
-
-        {/* Auth routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Dashboard routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/driver" element={<DriverDashboard />} />
-        <Route path="/super-admin" element={<SuperAdminDashboard />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
   );

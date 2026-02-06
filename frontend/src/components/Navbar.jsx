@@ -1,16 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { AppContext } from "../context/AppContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AppContext);
   const role = localStorage.getItem("role");
-  const token = localStorage.getItem("accessToken");
 
-  const logout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
-
-  if (!token) return null;
+  if (!user) return null;
 
   return (
     <nav style={{ padding: "10px 20px", background: "#111827", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

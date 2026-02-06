@@ -1,76 +1,10 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const admin = require("firebase-admin");
 const User = require("../models/User");
+const admin = require("firebase-admin");
+const db = admin.firestore();
 
 const router = express.Router();
-
-/* ================= REGISTER (OTP DISABLED) ================= */
-router.post("/register", async (req, res) => {
-  try {
-    const { name, phone, password, role, companyName } = req.body;
-
-    console.log("REGISTER BODY:", req.body);
-
-    if (!name || !phone || !password) {
-      return res.status(400).json({
-        message: "Name, phone and password are required",
-      });
-    }
-
-    const exists = await User.findOne({ phone });
-    if (exists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name,
-      phone,
-      password: hashedPassword,
-      role,
-      companyName,
-      isVerified: true,
-      provider: "local",
-    });
-
-    res.status(201).json({
-      message: "Registered successfully",
-      userId: user._id,
-    });
-  } catch (err) {
-    console.error("❌ REGISTER ERROR:", err);
-    res.status(500).json({
-      message: "Registration failed",
-      error: err.message,
-    });
-  }
-});
-
-/* ================= LOGIN ================= */
-router.post("/login", async (req, res) => {
-  try {
-    const { phone, password } = req.body;
-
-    const user = await User.findOne({ phone });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({ accessToken: token });
-  } catch (err) {
-    res.status(500).json({ message: "Login failed" });
-  }
-});
 
 /* ================= GOOGLE LOGIN ================= */
 router.post("/google", async (req, res) => {
@@ -92,7 +26,17 @@ router.post("/google", async (req, res) => {
         email,
         googleId: uid,
         role: "customer",
-        provider: "google",
+        authProvider: "google",
+      });
+
+      // Create Firestore user document
+      await db.collection('users').doc(user._id.toString()).set({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        authProvider: user.authProvider,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isVerified: false
       });
     }
 
@@ -105,6 +49,167 @@ router.post("/google", async (req, res) => {
     res.json({ accessToken });
   } catch (err) {
     res.status(401).json({ message: "Invalid Google token" });
+  }
+});
+
+/* ================= FIREBASE LOGIN/SYNC ================= */
+router.post("/firebase/login", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: "Firebase ID token required" });
+    }
+
+    // Verify Firebase token
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, email_verified } = decoded;
+
+    // Find or create user in MongoDB
+    let user = await User.findOne({
+      $or: [
+        { firebaseUid: uid },
+        { email: email }
+      ]
+    });
+
+    if (!user) {
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email: email,
+        firebaseUid: uid,
+        authProvider: "firebase",
+        role: "customer",
+        isVerified: email_verified || false
+      });
+
+      // Create Firestore user document
+      await db.collection('users').doc(user._id.toString()).set({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        authProvider: user.authProvider,
+        firebaseUid: user.firebaseUid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isVerified: user.isVerified
+      });
+      console.log("✅ New Firebase user created:", user._id);
+    } else {
+      // Update existing user with Firebase UID if not set
+      if (!user.firebaseUid) {
+        user.firebaseUid = uid;
+        user.authProvider = "firebase";
+        user.isVerified = email_verified || user.isVerified;
+        await user.save();
+
+        // Update Firestore document
+        await db.collection('users').doc(user._id.toString()).update({
+          firebaseUid: user.firebaseUid,
+          authProvider: user.authProvider,
+          isVerified: user.isVerified,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log("✅ Existing user updated with Firebase UID:", user._id);
+      }
+    }
+
+    // Fetch user profile from Firestore
+    const userDoc = await db.collection('users').doc(user._id.toString()).get();
+    const userProfile = userDoc.exists ? userDoc.data() : null;
+
+    // Generate JWT token
+    const accessToken = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      accessToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profile: userProfile
+      }
+    });
+  } catch (err) {
+    console.error("❌ Firebase login error:", err);
+    res.status(401).json({ message: "Firebase authentication failed" });
+  }
+});
+
+/* ================= FIREBASE USER SYNC ================= */
+router.post("/firebase/sync", require("../middleware/firebaseAuth").verifyFirebaseToken, async (req, res) => {
+  try {
+    const firebaseUser = req.user;
+
+    // User should already be synced by the middleware, just return user data
+    const user = await User.findOne({ firebaseUid: firebaseUser.uid });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch user profile from Firestore
+    const userDoc = await db.collection('users').doc(user._id.toString()).get();
+    const userProfile = userDoc.exists ? userDoc.data() : null;
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        profile: userProfile
+      }
+    });
+  } catch (err) {
+    console.error("❌ Firebase sync error:", err);
+    res.status(500).json({ message: "User sync failed" });
+  }
+});
+
+/* ================= UPDATE USER PROFILE ================= */
+router.put("/profile", require("../middleware/combinedAuth").authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, phone, companyName } = req.body;
+
+    // Update MongoDB user
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { name, phone, companyName },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update Firestore user document
+    await db.collection('users').doc(userId.toString()).update({
+      name: user.name,
+      phone: user.phone,
+      companyName: user.companyName,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        companyName: user.companyName,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error("❌ Profile update error:", err);
+    res.status(500).json({ message: "Profile update failed" });
   }
 });
 
