@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { AppContext } from "../context/AppContext";
 import Toast from "../components/Toast";
 import { auth, googleProvider } from "../firebase";
@@ -42,25 +42,32 @@ export default function Login() {
       await signInWithPopup(auth, googleProvider);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Google login failed");
+      setError(
+        err.response?.data?.message || err.message || "Google login failed"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Login</h2>
+    <div className="auth-layout">
+      <div className="auth-card">
+        <h2 className="page-title" style={{ textAlign: "center" }}>
+          Welcome back
+        </h2>
+        <p className="page-subtitle" style={{ textAlign: "center" }}>
+          Sign in to manage your loads and bookings.
+        </p>
 
         {error && <Toast message={error} />}
 
-        <form onSubmit={handleLogin} style={styles.form}>
+        <form onSubmit={handleLogin} className="form" style={{ marginTop: 24 }}>
           <input
             type="email"
             placeholder="Email"
             required
-            style={styles.input}
+            className="input"
             value={formData.email}
             onChange={(e) =>
               setFormData({ ...formData, email: e.target.value })
@@ -71,74 +78,33 @@ export default function Login() {
             type="password"
             placeholder="Password"
             required
-            style={styles.input}
+            className="input"
             value={formData.password}
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
             }
           />
 
-          <button type="submit" disabled={loading} style={styles.button}>
+          <button type="submit" disabled={loading} className="btn btn-primary">
             {loading ? "Signing in..." : "Login"}
           </button>
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            style={{
-              marginTop: 10,
-              padding: 12,
-              background: "#fff",
-              border: "1px solid #d1d5db",
-              cursor: "pointer",
-            }}
+            className="btn btn-secondary"
           >
             Continue with Google
           </button>
         </form>
 
-        <p style={{ marginTop: 16 }}>
+        <p className="text-muted" style={{ textAlign: "center", marginTop: 20 }}>
           Don’t have an account? <Link to="/register">Register</Link>
+        </p>
+        <p className="text-muted" style={{ textAlign: "center", marginTop: 8 }}>
+          <Link to="/forgot-password">Forgot password?</Link>
         </p>
       </div>
     </div>
   );
 }
-
-/* STYLES */
-const styles = {
-  container: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#f3f4f6",
-  },
-  card: {
-    width: 420,
-    padding: 30,
-    background: "#fff",
-    borderRadius: 10,
-    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-  },
-  title: {
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  input: {
-    padding: 10,
-    fontSize: 14,
-  },
-  button: {
-    padding: 12,
-    background: "#2563eb",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
-  },
-};
