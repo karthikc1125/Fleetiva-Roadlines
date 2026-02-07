@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { getApiBaseUrl } from "../api/baseUrl";
+import { safeStorage } from "../utils/storage";
 
 export default function AdminDashboard() {
   const [loads, setLoads] = useState([]);
@@ -74,12 +75,12 @@ export default function AdminDashboard() {
 
   const downloadBilty = (id) =>
     window.open(
-      `${API_BASE}/booking/${id}/bilty?token=${localStorage.getItem("accessToken")}`,
+      `${API_BASE}/booking/${id}/bilty?token=${safeStorage.get("accessToken")}`,
       "_blank"
     );
   const downloadInvoice = (id) =>
     window.open(
-      `${API_BASE}/booking/${id}/invoice?token=${localStorage.getItem("accessToken")}`,
+      `${API_BASE}/booking/${id}/invoice?token=${safeStorage.get("accessToken")}`,
       "_blank"
     );
 

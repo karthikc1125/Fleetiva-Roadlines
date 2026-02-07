@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import api from "../api/axios";
+import { safeStorage } from "../utils/storage";
 
 export default function OAuth() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function OAuth() {
       const idToken = await result.user.getIdToken();
       const res = await api.post("/auth/google", { idToken });
 
-      localStorage.setItem("accessToken", res.data.accessToken);
+      safeStorage.set("accessToken", res.data.accessToken);
       navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Error during Google sign-in:", error);

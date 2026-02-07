@@ -1,8 +1,9 @@
 import { NavLink } from "react-router-dom";
 import { useContext } from "react";
 import { AppContext } from "../context/appContextStore";
+import { safeStorage } from "../utils/storage";
 
-const getRole = (user) => user?.role || localStorage.getItem("role") || "customer";
+const getRole = (user) => user?.role || safeStorage.get("role") || "customer";
 
 export default function Navbar() {
   const { user, logout } = useContext(AppContext);

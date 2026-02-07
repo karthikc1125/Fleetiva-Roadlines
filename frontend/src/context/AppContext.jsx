@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { AppContext } from "./appContextStore";
+import { safeStorage } from "../utils/storage";
 
 export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
@@ -11,10 +12,10 @@ export const AppProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        localStorage.setItem("userToken", firebaseUser.accessToken);
+        safeStorage.set("userToken", firebaseUser.accessToken);
       } else {
         setUser(null);
-        localStorage.removeItem("userToken");
+        safeStorage.remove("userToken");
       }
     });
 
