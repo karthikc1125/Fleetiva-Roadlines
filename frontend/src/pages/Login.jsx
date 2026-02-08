@@ -36,6 +36,16 @@ export default function Login() {
     return err?.message || "Login failed";
   };
 
+  const isFirebaseAvailable = async () => {
+    if (!hasFirebaseConfig) return false;
+    try {
+      const response = await api.get("/auth/firebase/status");
+      return Boolean(response.data?.available);
+    } catch (err) {
+      return false;
+    }
+  };
+
   const validateLoginForm = ({ email, password }) => {
     if (!email || !password) {
       return "Email and password are required.";
@@ -69,7 +79,7 @@ export default function Login() {
 
     try {
       let role;
-      if (hasFirebaseConfig) {
+      if (hasFirebaseConfig && (await isFirebaseAvailable())) {
         if (!auth) {
           throw new Error("Firebase auth is unavailable.");
         }
@@ -88,7 +98,8 @@ export default function Login() {
         role = response.data.user.role;
       }
 
-      if (role === "admin") navigate("/admin", { replace: true });
+      if (role === "superadmin") navigate("/superadmin", { replace: true });
+      else if (role === "admin") navigate("/admin", { replace: true });
       else if (role === "driver") navigate("/driver", { replace: true });
       else navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -116,10 +127,15 @@ export default function Login() {
     setLoading(true);
 
     try {
+      if (!(await isFirebaseAvailable())) {
+        setError("Firebase authentication is unavailable on the server. Please use email/password login.");
+        return;
+      }
       const credential = await signInWithPopup(auth, googleProvider);
       const idToken = await credential.user.getIdToken();
       const role = await exchangeFirebaseToken(idToken);
-      if (role === "admin") navigate("/admin", { replace: true });
+      if (role === "superadmin") navigate("/superadmin", { replace: true });
+      else if (role === "admin") navigate("/admin", { replace: true });
       else if (role === "driver") navigate("/driver", { replace: true });
       else navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -195,6 +211,19 @@ export default function Login() {
         <p className="text-muted" style={{ textAlign: "center", marginTop: 8 }}>
           <Link to="/forgot-password">Forgot password?</Link>
         </p>
+
+        <div className="card" style={{ marginTop: 24 }}>
+          <h3 className="section-title" style={{ marginBottom: 8 }}>
+            Need help logging in?
+          </h3>
+          <p className="text-muted" style={{ marginBottom: 12 }}>
+            Contact the Fleetiva support team and we will help you regain access.
+          </p>
+          <div className="toolbar" style={{ flexWrap: "wrap", gap: 8 }}>
+            <span className="tag info">Phone: +91 98765 43210</span>
+            <span className="tag">Email: support@fleetiva.com</span>
+          </div>
+        </div>
       </div>
     </div>
   );
