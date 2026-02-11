@@ -42,9 +42,15 @@ export default function PostLoad() {
       setCapacity("");
       setFrom("");
       setTo("");
+
+    } catch (err) {
+      console.log("ERROR:", err.response?.data);
+      alert(err.response?.data?.message || "Load post failed");
+
     } catch (error) {
       console.error("Failed to post load:", error);
       alert("Failed to post load. Please check your inputs.");
+
     }
   };
 
