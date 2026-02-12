@@ -44,13 +44,8 @@ export default function PostLoad() {
       setTo("");
 
     } catch (err) {
-      console.log("ERROR:", err.response?.data);
-      alert(err.response?.data?.message || "Load post failed");
-
-    } catch (error) {
-      console.error("Failed to post load:", error);
-      alert("Failed to post load. Please check your inputs.");
-
+      console.error("Failed to post load:", err);
+      alert(err.response?.data?.message || "Load post failed. Please check your inputs.");
     }
   };
 

@@ -1,12 +1,6 @@
 import { NavLink } from "react-router-dom";
 
 import { useContext, useState, useRef, useEffect } from "react";
-import { AppContext } from "../context/AppContext";
-
-const getRole = (user) =>
-  user?.role || localStorage.getItem("role") || "customer";
-
-import { useContext } from "react";
 import { AppContext } from "../context/appContextStore";
 import { safeStorage } from "../utils/storage";
 

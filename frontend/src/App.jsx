@@ -1,12 +1,5 @@
 import React, { useContext, useMemo } from "react";
 
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { AppContext } from "./context/AppContext";
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AppContext } from "./context/appContextStore";
